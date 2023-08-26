@@ -10,18 +10,57 @@ import os
 
 
 MAX = 1024
+HINT = '''
+bls.search.uploader     ->      user-agent
+bls.tool.spammer        ->      cookie, csrf
+bls.post.report         ->      cookie, csrf
+bls.post.reply          ->      cookie, csrf
+
+bls.setting.up(
+    usragent = "",
+    cookie = "",
+    csrf = ""
+)
+'''
+
+
+def form(kind:str):
+    if kind == 'report':
+        return {
+            'add_blacklist': False,
+            'csrf': setting.csrf,
+            'ordering': 'heat',
+            'reason': None,
+            'rpid': None,
+            'type': 1
+        }
+    elif kind == 'reply':
+        return {
+            'oid': None,
+            'message': None,
+            'csrf': setting.csrf,
+            'plat': 1,
+            'type': 1
+        }
+    else:
+        return {}
+    
 
 
 class setting:
-    usragent = ''
+    usragent = None
     cookie = None
     csrf = None
 
     @staticmethod
     def up(usragent:str=None, cookie:str=None, csrf:str=None):
-        setting.usragent = usragent
-        setting.cookie = cookie
-        setting.csrf = csrf
+        if usragent is None and cookie is None and csrf is None:
+            print(HINT)
+        else:
+            setting.usragent = usragent
+            setting.cookie = cookie
+            setting.csrf = csrf
+
 
 
 class loading:
@@ -49,27 +88,6 @@ class url:
     branch = host + 'x/v2/reply/reply?&oid={}&pn=1&ps={}&root={}&type=1'
     
 
-def form(kind:str):
-    if kind == 'report':
-        return {
-            'add_blacklist': False,
-            'csrf': setting.csrf,
-            'ordering': 'heat',
-            'reason': None,
-            'rpid': None,
-            'type': 1
-        }
-    elif kind == 'reply':
-        return {
-            'oid': None,
-            'message': None,
-            'csrf': setting.csrf,
-            'plat': 1,
-            'type': 1
-        }
-    else:
-        return {}
-
     
 class utils:
     @staticmethod
@@ -78,7 +96,7 @@ class utils:
             html = requests.get(url=url.main.format(bvid))
             oid = re.search(f'"bvid":"{bvid}","aid":(\d+),', html.text).group(1)
         except Exception as error:
-            raise Exception(f'{error} <bv2oid>')
+            raise Exception(f'{error} <utils.bv2oid>')
         
         time.sleep(1)
         return oid
@@ -121,6 +139,7 @@ class search:
         return videos
         
 
+
 class load:
     @staticmethod
     def data(bvid:str):
@@ -136,7 +155,7 @@ class load:
             raw = list(map(lambda x: re.sub('[^万0-9]', '', x), top+bottom+reply))
             data = list(map(lambda x: int(re.sub('万', '000', x)), raw))
         except Exception as error:
-            raise Exception(f'{error} <video.data>')
+            raise Exception(f'{error} <load.data>')
         
         time.sleep(1)
         return data
@@ -174,15 +193,17 @@ class load:
             df = pd.DataFrame(comment, index=['mid', 'comment']).transpose()
             comment = df.reset_index().rename(columns={'index':'rpid'})
         except Exception as error:
-            raise Exception(f'{error} <video.comment>')
+            raise Exception(f'{error} <load.comment>')
         
         time.sleep(1)
         print(f'<{bvid}>: {len(comment)}')
         return comment
-    
 
+
+
+class tool:
     @staticmethod
-    def bundle(bvid:list, folder:str, page:int=MAX, branch:int=MAX):
+    def observer(bvid:list, folder:str, page:int=MAX, branch:int=MAX):
         if folder not in os.listdir():
             os.mkdir(folder)
         for each in bvid:
@@ -199,7 +220,41 @@ class load:
                 fullset.append(pd.read_csv(f'{folder}/{file}'))
 
         pd.concat(fullset).to_csv(f'{folder}.csv', index=False)
-    
+
+
+    @staticmethod
+    def tracer(bvid:str, run:int):
+        for i in range(run):
+            prev = time.time()
+
+            try:
+                data = load.data(bvid)
+                content = ','.join([str(i) for i in data])
+            except Exception as error:
+                print(error)
+                content = ','*6
+            finally:
+                with open(f'{bvid}.csv', 'a') as file:
+                    file.write(f'{int(prev)},' + content + '\n')
+
+            print(f'Progress: {i+1}/{run}', end='\r')
+            now = time.time()
+            time.sleep(75-(now-prev))
+
+
+    @staticmethod
+    def spammer(oid:str, message:str):
+        bvid = search.uploader(oid)
+        for each in bvid:
+            try:
+                code = post.reply(each, message)
+                print(f'{each}: {utils.code2msg(code)}')
+            except Exception as error:
+                print(f'{each}: {error}')
+            finally:
+                time.sleep(1)
+
+
 
 class post:
     @staticmethod
@@ -234,6 +289,7 @@ class post:
         return code
 
 
+
 class process:
     @staticmethod
     def std(data:pd.DataFrame):
@@ -253,6 +309,7 @@ class process:
         
         return df
     
+
 
 visualize = loading(['-', '/', '|', '\\'])
 jieba.lcut('preload')
