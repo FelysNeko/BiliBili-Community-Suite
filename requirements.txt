@@ -1,0 +1,5 @@
+pandas
+requests
+jieba
+bs4
+scikit-learn
