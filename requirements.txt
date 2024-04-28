@@ -1,5 +1,3 @@
-pandas
-requests
-jieba
-bs4
-scikit-learn
+beautifulsoup4
+notebook
+httpx
