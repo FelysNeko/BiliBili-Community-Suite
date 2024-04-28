@@ -1,3 +1,7 @@
+# Announcement
+
+**Unfortunately, BiliBili has changed their API entirely a few months ago, and breaks this toolbox. However, there are still people actively updating the BiliBili API docs on GitHub. You can use their tools to fetch data and train the model. I will archive all the broken tools in near future.**
+
 # BiliBili-Community-Suite
 
 Import it to your python program
